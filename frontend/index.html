@@ -154,7 +154,7 @@ text {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch("http://localhost:8000/parse", {method: "POST", body: formData});
+      const response = await fetch("https://gedcom-knowledge-graph-backend.onrender.com", {method: "POST", body: formData});
       if (!response.ok) { alert("Upload failed"); return; }
       const data = await response.json();
 
@@ -162,7 +162,7 @@ text {
         `Persons: ${data.count.persons}, Families: ${data.count.families}`;
 
       const downloadLink = document.getElementById("downloadLink");
-      downloadLink.href = `http://localhost:8000/download?file_path=${encodeURIComponent(data.ttl_file)}`;
+      downloadLink.href = `https://gedcom-knowledge-graph-backend.onrender.com/download?file_path=${encodeURIComponent(data.ttl_file)}`;
       downloadLink.style.display = "inline";
       downloadLink.innerText = "Download TTL";
 
