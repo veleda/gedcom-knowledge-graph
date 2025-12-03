@@ -135,140 +135,125 @@ text {
 
 
   </style>
+
 </head>
 <body>
   <h1>GEDCOM Knowledge Graph</h1>
 
-  <input type="file" id="gedcomFile">
-  <button onclick="uploadGedcom()">Upload GEDCOM</button>
+  <div id="controls">
+    <input type="file" id="gedcomFile">
+    <button id="uploadBtn">Upload GEDCOM</button>
+    <span id="status" style="margin-left:12px"></span>
+    <div id="count"></div>
+    <a id="dl" style="display:none">Download TTL</a>
+  </div>
 
-  <div id="count" style="margin-top:10px;"></div>
-  <a id="downloadLink" style="display:none;" download="output.ttl">Download TTL</a>
-  <svg id="graph" width="900" height="600"></svg>
+  <svg id="graph" width="1000" height="600"></svg>
 
   <script>
-    async function uploadGedcom() {
-      const fileInput = document.getElementById("gedcomFile");
-      if (!fileInput.files.length) return alert("Select a GEDCOM file");
+    // EDIT THIS: your deployed backend URL
+    const BACKEND_URL = "https://gedcom-backend.onrender.com";
 
+    const uploadBtn = document.getElementById("uploadBtn");
+    const fileInput = document.getElementById("gedcomFile");
+    const status = document.getElementById("status");
+    const countDiv = document.getElementById("count");
+    const dl = document.getElementById("dl");
+    const svg = d3.select("#graph");
+
+    uploadBtn.addEventListener("click", uploadGedcom);
+
+    async function uploadGedcom() {
+      status.textContent = "";
+      if (!fileInput.files.length) {
+        alert("Please choose a GEDCOM file first.");
+        return;
+      }
       const file = fileInput.files[0];
-      const formData = new FormData();
-      formData.append("file", file); // must match `file=UploadFile` in backend
+      const fd = new FormData();
+      fd.append("file", file);
 
       try {
-        const response = await fetch("https://gedcom-knowledge-graph-backend.onrender.com/parse", {
-          method: "POST",
-          body: formData
-        });
+        status.textContent = "Uploading...";
+        const resp = await fetch(`${BACKEND_URL}/parse`, { method: "POST", body: fd });
 
-        if (!response.ok) {
-          const text = await response.text();
-          return alert("Upload failed: " + text);
+        if (!resp.ok) {
+          const txt = await resp.text();
+          alert("Upload failed: " + txt);
+          status.textContent = "";
+          return;
         }
 
-        const data = await response.json();
-        console.log("Response:", data);
+        const data = await resp.json();
+        status.textContent = "Done.";
+
+        // show counts
+        countDiv.textContent = `Persons: ${data.count.persons}  —  Families: ${data.count.families}`;
+
+        // enable TTL download (create a blob)
+        dl.style.display = "inline";
+        const ttl_blob = new Blob([data.ttl], { type: "text/turtle;charset=utf-8" });
+        const ttl_url = URL.createObjectURL(ttl_blob);
+        dl.href = ttl_url;
+        dl.download = "output.ttl";
+        dl.textContent = "Download TTL";
+
+        // render graph from returned graph JSON
+        renderGraph(data.graph.nodes, data.graph.links);
+
       } catch (err) {
+        console.error(err);
         alert("Upload failed: " + err);
+        status.textContent = "";
       }
     }
-function renderGraph(nodes, links) {
-  const svg = d3.select("#graph");
-  svg.selectAll("*").remove();
 
-  const width = +svg.attr("width");
-  const height = +svg.attr("height");
+    function renderGraph(nodes, links) {
+      svg.selectAll("*").remove();
+      const width = +svg.attr("width"), height = +svg.attr("height");
 
-  // Container for all nodes and links
-  const container = svg.append("g");
-
-  // Tooltip div
-  const tooltip = d3.select("body").append("div")
-      .attr("class", "tooltip");
-
-  // Simulation
-  const simulation = d3.forceSimulation(nodes)
-      .force("link", d3.forceLink(links).id(d => d.id).distance(80))
-      .force("charge", d3.forceManyBody().strength(-300))
-      .force("center", d3.forceCenter(width / 2, height / 2));
-
-  // Links
-  const link = container.append("g").attr("class", "links").selectAll("line")
-      .data(links)
-      .enter().append("line")
-      .attr("class", "link")
-      .attr("stroke-width", 1.5);
-
-  // Nodes
-  const node = container.append("g").attr("class", "nodes").selectAll("g")
-      .data(nodes)
-      .enter().append("g")
-      .attr("class", d => `node ${d.type}`);
-
-  // Circles
-  node.append("circle").attr("r", 10);
-
-  // Labels
-  node.append("text")
-      .text(d => d.label.split("/").pop())
-      .attr("x", 12)
-      .attr("y", 3)
-      .attr("font-size", "12px")
-      .attr("pointer-events", "none");
-
-  // Hover tooltip
-  node.on("mouseover", (event, d) => {
-        tooltip.style("opacity", 1)
-               .html(d.label);
-      })
-      .on("mousemove", (event) => {
-        tooltip.style("left", (event.pageX + 10) + "px")
-               .style("top", (event.pageY + 10) + "px");
-      })
-      .on("mouseout", () => {
-        tooltip.style("opacity", 0);
+      // convert link endpoints from ids to object refs
+      const nodeById = new Map(nodes.map(d => [d.id, d]));
+      links.forEach(l => {
+        l.source = nodeById.get(l.source);
+        l.target = nodeById.get(l.target);
       });
 
-  // Simulation tick
-  simulation.on("tick", () => {
-    link
-        .attr("x1", d => d.source.x)
-        .attr("y1", d => d.source.y)
-        .attr("x2", d => d.target.x)
-        .attr("y2", d => d.target.y);
+      const simulation = d3.forceSimulation(nodes)
+        .force("link", d3.forceLink(links).id(d => d.id).distance(90).strength(1))
+        .force("charge", d3.forceManyBody().strength(-300))
+        .force("center", d3.forceCenter(width/2, height/2));
 
-    node.attr("transform", d => `translate(${d.x},${d.y})`);
-  });
+      const link = svg.append("g").attr("class","links")
+        .selectAll("line")
+        .data(links).enter().append("line").attr("class", "link").attr("stroke-width", 1.5);
 
-  // Zoom behavior
-  const zoom = d3.zoom()
-      .scaleExtent([0.1, 4])
-      .on("zoom", (event) => {
-        container.attr("transform", event.transform);
-      });
-  svg.call(zoom);
+      const node = svg.append("g").attr("class","nodes")
+        .selectAll("g").data(nodes).enter().append("g")
+        .attr("class", d => `node ${d.type}`);
 
-  // Drag behavior (safe with zoom)
-  const drag = d3.drag()
-      .on("start", (event, d) => {
-        if (!event.active) simulation.alphaTarget(0.3).restart();
-        d.fx = d.x;
-        d.fy = d.y;
-      })
-      .on("drag", (event, d) => {
-        d.fx = event.x;
-        d.fy = event.y;
-      })
-      .on("end", (event, d) => {
-        if (!event.active) simulation.alphaTarget(0);
-        d.fx = null;
-        d.fy = null;
+      node.append("circle").attr("r", 8);
+
+      node.append("text")
+        .attr("x", 10).attr("y", 3)
+        .text(d => (d.label || d.id).toString().split("/").pop());
+
+      simulation.on("tick", () => {
+        link
+          .attr("x1", d => d.source.x)
+          .attr("y1", d => d.source.y)
+          .attr("x2", d => d.target.x)
+          .attr("y2", d => d.target.y);
+
+        node.attr("transform", d => `translate(${d.x},${d.y})`);
       });
 
-  node.call(drag);
-}
-
-
+      // drag behavior
+      node.call(d3.drag()
+        .on("start", (event,d)=>{ if(!event.active) simulation.alphaTarget(0.3).restart(); d.fx=d.x; d.fy=d.y; })
+        .on("drag",  (event,d)=>{ d.fx=event.x; d.fy=event.y; })
+        .on("end",   (event,d)=>{ if(!event.active) simulation.alphaTarget(0); d.fx=null; d.fy=null; }));
+    }
   </script>
 </body>
 </html>
