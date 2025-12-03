@@ -1,0 +1,146 @@
+
+/* --- Page Layout --- */
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0;
+  padding: 20px;
+  background: #f7f9fc;
+  color: #333;
+}
+
+h1 {
+  text-align: center;
+  color: #2c3e50;
+  margin-bottom: 20px;
+}
+
+/* --- File Input and Buttons --- */
+#gedcomFile {
+  display: inline-block;
+  margin-right: 10px;
+  padding: 6px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+button {
+  padding: 6px 14px;
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+button:hover {
+  background-color: #2980b9;
+}
+
+#downloadLink {
+  display: inline-block;
+  margin-left: 10px;
+  padding: 6px 14px;
+  background-color: #2ecc71;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+#downloadLink:hover {
+  background-color: #27ae60;
+}
+
+/* --- Count Info --- */
+#count {
+  margin-top: 10px;
+  font-weight: 500;
+  color: #555;
+}
+
+/* --- SVG Graph --- */
+svg {
+  border: 1px solid #ccc;
+  background-color: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  border-radius: 6px;
+  display: block;
+  margin: 20px auto;
+}
+
+/* Node Styles */
+.node circle {
+  stroke: #333;
+  stroke-width: 1.5px;
+  cursor: pointer;
+  transition: fill 0.2s, r 0.2s;
+}
+
+.node.person circle {
+  fill: #3498db;
+}
+
+.node.family circle {
+  fill: #e67e22;
+}
+
+.node:hover circle {
+  stroke-width: 2.5px;
+  r: 12px;
+}
+
+  /* rectangle node */
+  .node-rect {
+    fill: #69b3a2;         /* default node color (persons) */
+    stroke: #333;
+    stroke-width: 1.2px;
+  }
+  .node-family .node-rect { fill: #f39c12; } /* family color override */
+
+  .node-initial {
+    fill: white;
+    font-weight: 700;
+    font-family: sans-serif;
+    pointer-events: none; /* let the group handle pointer events */
+  }
+
+/* Links */
+.link {
+  stroke: #999;
+  stroke-opacity: 0.6;
+}
+
+/* Labels */
+text {
+  font: 12px sans-serif;
+  pointer-events: none;
+  fill: #2c3e50;
+  font-weight: 500;
+}
+
+  /* tooltip */
+  .tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: rgba(0,0,0,0.85);
+    color: #fff;
+    padding: 6px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    white-space: nowrap;
+    display: none;
+    z-index: 1000;
+  }
+  .zoom-rect {
+    cursor: move;
+    fill: none;
+    pointer-events: all;
+  }
+
+  .node text {
+  transition: fill 0.2s;
+}

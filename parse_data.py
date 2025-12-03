@@ -105,6 +105,9 @@ def build_persons_table(df: pl.DataFrame, base_uri: str) -> pl.DataFrame:
     )
 
     persons = pointers.join(persons_wide, on="person_id", how="left")
+
+    persons.with_colums("NAME").str.replace_all("/", "")
+
     return persons
 
 # ----------------------------

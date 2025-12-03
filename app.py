@@ -25,10 +25,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Path to template and ontology files (must exist in repo)
-TPL_FILE = "tpl.ttl"
-ONT_FILE = "ont.ttl"
-
+TPL_FILE = "tpl.ttl" # OTTR template
+ONT_FILE = "ont.ttl" # Ontology
 
 def gedcom_to_graph_json(df_persons, df_families):
     nodes = []
@@ -74,30 +72,33 @@ async def parse_gedcom(file: UploadFile = File(...)):
         with open(gedcom_path, "wb") as fh:
             fh.write(await file.read())
 
-        # 1) parse gedcom into polars dataframes
+        ### Parse GEDCOM into Polars Data Frame
         out = p.parse_gedcom_to_polars(gedcom_path)
         df_persons = out["persons"]
         df_families = out["families"]
 
-        # 2) maplib => produce TTL into a temp file, then read content
+        ### Init maplib RDF Model
         m = Model()
-        # load template and ontology; ensure files exist
+        
         if not os.path.exists(TPL_FILE):
             raise HTTPException(status_code=500, detail=f"Missing template file: {TPL_FILE}")
         if not os.path.exists(ONT_FILE):
             raise HTTPException(status_code=500, detail=f"Missing ontology file: {ONT_FILE}")
 
+        ### Add template
         with open(TPL_FILE, "r", encoding="utf-8") as tplfh:
             tpl = tplfh.read()
         m.add_template(tpl)
 
+        ### Serialise data frames into RDF
         m.map("urn:maplib_default:default_template_0", df_persons)
         m.map("urn:maplib_default:default_template_1", df_families)
-        m.read(ONT_FILE)
+        m.read(ONT_FILE) # merge in ontology
 
         ttl_path = os.path.join(tmp_dir, "output.ttl")
         m.write(ttl_path)
 
+        ### rdflib for pretty turtle. This is on the roadmap for maplib!
         from rdflib import Graph
         g = Graph()
         g.bind("gen", "http://gen.example.com/")
