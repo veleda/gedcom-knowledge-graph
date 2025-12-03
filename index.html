@@ -99,6 +99,21 @@ svg {
   r: 12px;
 }
 
+  /* rectangle node */
+  .node-rect {
+    fill: #69b3a2;         /* default node color (persons) */
+    stroke: #333;
+    stroke-width: 1.2px;
+  }
+  .node-family .node-rect { fill: #f39c12; } /* family color override */
+
+  .node-initial {
+    fill: white;
+    font-weight: 700;
+    font-family: sans-serif;
+    pointer-events: none; /* let the group handle pointer events */
+  }
+
 /* Links */
 .link {
   stroke: #999;
@@ -113,19 +128,19 @@ text {
   font-weight: 500;
 }
 
- .tooltip {
+  /* tooltip */
+  .tooltip {
     position: absolute;
     pointer-events: none;
-    background: rgba(0,0,0,0.8);
+    background: rgba(0,0,0,0.85);
     color: #fff;
     padding: 6px 8px;
-    border-radius: 4px;
+    border-radius: 6px;
     font-size: 12px;
     box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-    transform: translate(-50%, -120%); /* show above cursor */
     white-space: nowrap;
-    z-index: 1000;
     display: none;
+    z-index: 1000;
   }
   .zoom-rect {
     cursor: move;
@@ -211,130 +226,177 @@ text {
       }
     }
 
-    function renderGraph(nodes, links) {
+function renderGraph(nodes, links) {
       // clear previous
       svg.selectAll("*").remove();
 
       const width = +svg.attr("width");
       const height = +svg.attr("height");
 
-      // tooltip DOM element
+      // tooltip DOM element (HTML)
       const tooltip = document.getElementById("tooltip");
 
-      // ---- Zoom rect first (so it is below the node layer) ----
-      // invisible rect captures zoom/pan gestures but lives under the container
+      // ---- Add zoom rect FIRST (under the container) ----
       svg.append("rect")
         .attr("class", "zoom-rect")
         .attr("width", width)
         .attr("height", height)
         .style("fill", "transparent")
-        .style("cursor", "move"); // shows move cursor on background
+        .style("cursor", "move");
 
-      // group that will be zoomed and must sit above the rect
+      // Group that will be transformed by zoom; sits above zoom-rect
       const container = svg.append("g").attr("class", "container");
 
-      // convert link endpoints from ids to object refs
+      // Map ids -> node objects and fix link endpoints
       const nodeById = new Map(nodes.map(d => [d.id, d]));
       links.forEach(l => {
         l.source = nodeById.get(l.source);
         l.target = nodeById.get(l.target);
       });
 
+      // Force simulation
       const simulation = d3.forceSimulation(nodes)
         .force("link", d3.forceLink(links).id(d => d.id).distance(90).strength(1))
         .force("charge", d3.forceManyBody().strength(-300))
         .force("center", d3.forceCenter(width / 2, height / 2))
         .on("tick", ticked);
 
-      // draw links
+      // Draw links
       const link = container.append("g").attr("class", "links")
         .selectAll("line")
         .data(links)
         .enter().append("line")
         .attr("class", "link")
-        .attr("stroke-width", 1.5)
         .attr("stroke", "#999")
-        .attr("stroke-opacity", 0.6);
+        .attr("stroke-opacity", 0.6)
+        .attr("stroke-width", 1.2);
 
-      // draw nodes
+      // Helper: initials
+      function initialsOf(label) {
+        if (!label) return "";
+        const words = label.toString().trim().split(/\s+/).filter(Boolean);
+        if (words.length === 0) return "";
+        if (words.length === 1) {
+          return words[0].slice(0, 2).toUpperCase();
+        }
+        return (words[0][0] + (words[1] ? words[1][0] : "")).toUpperCase();
+      }
+
+      // Node groups
       const node = container.append("g").attr("class", "nodes")
         .selectAll("g")
         .data(nodes)
         .enter().append("g")
         .attr("class", d => `node ${d.type}`)
-        .style("cursor", "pointer"); // show pointer on node hover
+        .style("cursor", "pointer");
 
-      node.append("circle")
-        .attr("r", 8)
-        .attr("stroke", "#333")
-        .attr("stroke-width", 1.2);
+      // For each node: measure initials text, draw rect, draw initials text
+      const paddingX = 8;
+      const paddingY = 6;
+      node.each(function(d) {
+        const g = d3.select(this);
+        const fullLabel = (d.label || d.id).toString();
+        const init = initialsOf(fullLabel) || "";
 
-      // Add an SVG <title> as a fallback (browser tooltip on hover)
+        // Append a hidden measuring text to compute width/height
+        const measuring = g.append("text")
+          .attr("class", "node-initial measuring")
+          .attr("font-size", 12)
+          .attr("text-anchor", "middle")
+          .attr("dominant-baseline", "middle")
+          .style("visibility", "hidden")
+          .text(init);
+
+        // Force browser to compute layout, then measure
+        // (getBBox works once node is in DOM)
+        const bbox = measuring.node().getBBox();
+        const w = bbox.width + paddingX * 2;
+        const h = bbox.height + paddingY * 2;
+
+        // remove measuring text
+        measuring.remove();
+
+        // append rounded rect centered on (0,0)
+        g.append("rect")
+          .attr("class", "node-rect")
+          .attr("rx", Math.min(12, h / 2))
+          .attr("ry", Math.min(12, h / 2))
+          .attr("x", -w / 2)
+          .attr("y", -h / 2)
+          .attr("width", w)
+          .attr("height", h);
+
+        // initials text (visible)
+        g.append("text")
+          .attr("class", "node-initial")
+          .attr("text-anchor", "middle")
+          .attr("dominant-baseline", "middle")
+          .attr("font-size", 12)
+          .attr("fill", "white")
+          .style("pointer-events", "none") // so dragging works on the group
+          .text(init);
+      });
+
+      // Add <title> fallback tooltip
       node.append("title").text(d => (d.label || d.id));
 
-      node.append("text")
-        .attr("text-anchor", "middle")
-        .attr("dominant-baseline", "middle")
-        .attr("font-size", 9)
-        .attr("fill", "white")
-        .text(d => {
-            const label = (d.label || d.id).toString().split("/").pop();
-            return label.length > 4 ? label.slice(0,4) : label;
-      })
-    .style("pointer-events", "none");   // important: don't block dragging!
-
-      // Drag behavior (works with zoom)
+      // DRAG behavior (works with zoom)
       const drag = d3.drag()
         .on("start", (event, d) => {
           if (!event.active) simulation.alphaTarget(0.3).restart();
-          // freeze position
+          // freeze simulation coords
           d.fx = d.x;
           d.fy = d.y;
         })
         .on("drag", (event, d) => {
-          // update fixed position (these are simulation coordinates)
-          d.fx = event.x;
-          d.fy = event.y;
+          // event.x / event.y are in SVG coordinates (already transformed by zoom),
+          // but because we apply transforms to container, d.x/d.y are simulation coords.
+          // We keep it simple: update fx/fy with event coords translated back using inverse transform.
+          const transform = d3.zoomTransform(svg.node());
+          // convert screen coords to simulation coords by inverting current transform
+          d.fx = transform.invertX(event.x);
+          d.fy = transform.invertY(event.y);
         })
         .on("end", (event, d) => {
           if (!event.active) simulation.alphaTarget(0);
+          // Release fixed position so nodes can move again
           d.fx = null;
           d.fy = null;
         });
 
       node.call(drag);
 
-      // Hover interactions for HTML tooltip
+      // HTML tooltip interactions (hover)
       node.on("mouseover", (event, d) => {
         const text = (d.label || d.id).toString();
-        tooltip.style.display = "block";
-        tooltip.textContent = text;
-        positionTooltip(event);
+        if (tooltip) {
+          tooltip.style.display = "block";
+          tooltip.textContent = text;
+          positionTooltip(event);
+        }
       }).on("mousemove", (event) => {
-        positionTooltip(event);
+        if (tooltip) positionTooltip(event);
       }).on("mouseout", () => {
-        tooltip.style.display = "none";
+        if (tooltip) tooltip.style.display = "none";
       });
 
       function positionTooltip(event) {
-        // keep tooltip near mouse; adjust offset so it doesn't overlap cursor
         const offsetX = 12;
         const offsetY = -12;
         tooltip.style.left = (event.pageX + offsetX) + "px";
         tooltip.style.top = (event.pageY + offsetY) + "px";
       }
 
-      // zoom behavior: apply transforms to container (which is above the rect)
+      // Zoom behavior (apply transforms to container)
       const zoom = d3.zoom()
         .scaleExtent([0.1, 4])
         .on("zoom", (event) => {
           container.attr("transform", event.transform);
         });
 
-      // attach zoom to svg (rect will still capture gestures but nodes receive mouse)
       svg.call(zoom);
 
-      // tick update
+      // Tick function: update positions
       function ticked() {
         link
           .attr("x1", d => d.source.x)
@@ -345,9 +407,10 @@ text {
         node.attr("transform", d => `translate(${d.x},${d.y})`);
       }
 
-      // kick simulation
+      // Kick the simulation
       simulation.alpha(1).restart();
     }
+
 
   </script>
 </body>
