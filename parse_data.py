@@ -188,7 +188,7 @@ def build_families_table(df: pl.DataFrame, person_map: pl.DataFrame, base_uri: s
     families_pd = families.to_pandas()
 
     families_pd["child_uris"] = families_pd["child_uris"].apply(
-        lambda lst: [s.replace("[","").replace("]","").replace("'", "") for s in lst] 
+        lambda lst: [s.replace("[","").replace("]","").strip().replace("'", "").strip() for s in lst] 
                 if (lst is not None and len(lst) > 0) else []
     )
 
