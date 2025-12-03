@@ -98,6 +98,13 @@ async def parse_gedcom(file: UploadFile = File(...)):
         ttl_path = os.path.join(tmp_dir, "output.ttl")
         m.write(ttl_path)
 
+        from rdflib import Graph
+        g = Graph()
+        g.bind("gen", "http://gen.example.com/")
+        g.parse(ttl_path, format="turtle")
+
+        g.serialize(ttl_path, format="turtle")
+
         # read TTL content to return to frontend (no local file paths returned)
         with open(ttl_path, "r", encoding="utf-8") as tf:
             ttl_text = tf.read()
