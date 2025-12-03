@@ -1,0 +1,117 @@
+0 HEAD
+1 SOUR ChatGPT
+1 GEDC
+2 VERS 5.5
+1 CHAR UTF-8
+
+0 @I1@ INDI
+1 NAME Donald /Duck/
+1 SEX M
+1 BIRT
+2 DATE 1934
+1 FAMC @F1@      
+
+0 @I2@ INDI
+1 NAME Della /Duck/
+1 SEX F
+1 BIRT
+2 DATE 1930
+1 FAMC @F1@       
+1 FAMS @F3@       
+
+0 @I3@ INDI
+1 NAME Huey /Duck/
+1 SEX M
+1 BIRT
+2 DATE 1940
+1 FAMC @F3@
+
+0 @I4@ INDI
+1 NAME Dewey /Duck/
+1 SEX M
+1 BIRT
+2 DATE 1940
+1 FAMC @F3@
+
+0 @I5@ INDI
+1 NAME Louie /Duck/
+1 SEX M
+1 BIRT
+2 DATE 1940
+1 FAMC @F3@
+
+0 @I6@ INDI
+1 NAME Scrooge /McDuck/
+1 SEX M
+1 BIRT
+2 DATE 1867
+1 DEAT
+2 DATE 1967
+1 FAMS @F4@
+
+0 @I7@ INDI
+1 NAME Quackmore /Duck/
+1 SEX M
+1 BIRT
+2 DATE 1875
+1 FAMS @F1@
+
+0 @I8@ INDI
+1 NAME Hortense /McDuck/
+1 SEX F
+1 BIRT
+2 DATE 1876
+1 FAMS @F1@
+
+0 @I9@ INDI
+1 NAME Elvira "Grandma" /Duck/
+1 SEX F
+1 BIRT
+2 DATE 1860
+1 FAMS @F5@
+
+0 @I10@ INDI
+1 NAME Humperdink /Duck/
+1 SEX M
+1 BIRT
+2 DATE 1850
+1 DEAT
+2 DATE 1930
+1 FAMS @F5@
+
+0 @I11@ INDI
+1 NAME Fergus /McDuck/
+1 SEX M
+1 BIRT
+2 DATE 1830
+1 FAMS @F4@
+
+0 @I12@ INDI
+1 NAME Downy /O'Drake/
+1 SEX F
+1 BIRT
+2 DATE 1835
+1 FAMS @F4@
+
+0 @F1@ FAM
+1 HUSB @I7@       
+1 WIFE @I8@        
+1 CHIL @I1@        
+1 CHIL @I2@        
+
+0 @F3@ FAM
+1 WIFE @I2@       
+1 CHIL @I3@        
+1 CHIL @I4@       
+1 CHIL @I5@       
+
+0 @F4@ FAM
+1 HUSB @I11@      
+1 WIFE @I12@      
+1 CHIL @I8@       
+1 CHIL @I6@       
+
+0 @F5@ FAM
+1 HUSB @I10@      
+1 WIFE @I9@       
+1 CHIL @I7
