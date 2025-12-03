@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>GEDCOM Knowledge Graph</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+
+/* --- Page Layout --- */
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0;
+  padding: 20px;
+  background: #f7f9fc;
+  color: #333;
+}
+
+h1 {
+  text-align: center;
+  color: #2c3e50;
+  margin-bottom: 20px;
+}
+
+/* --- File Input and Buttons --- */
+#gedcomFile {
+  display: inline-block;
+  margin-right: 10px;
+  padding: 6px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+button {
+  padding: 6px 14px;
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+button:hover {
+  background-color: #2980b9;
+}
+
+#downloadLink {
+  display: inline-block;
+  margin-left: 10px;
+  padding: 6px 14px;
+  background-color: #2ecc71;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+#downloadLink:hover {
+  background-color: #27ae60;
+}
+
+/* --- Count Info --- */
+#count {
+  margin-top: 10px;
+  font-weight: 500;
+  color: #555;
+}
+
+/* --- SVG Graph --- */
+svg {
+  border: 1px solid #ccc;
+  background-color: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  border-radius: 6px;
+  display: block;
+  margin: 20px auto;
+}
+
+/* Node Styles */
+.node circle {
+  stroke: #333;
+  stroke-width: 1.5px;
+  cursor: pointer;
+  transition: fill 0.2s, r 0.2s;
+}
+
+.node.person circle {
+  fill: #3498db;
+}
+
+.node.family circle {
+  fill: #e67e22;
+}
+
+.node:hover circle {
+  stroke-width: 2.5px;
+  r: 12px;
+}
+
+/* Links */
+.link {
+  stroke: #999;
+  stroke-opacity: 0.6;
+}
+
+/* Labels */
+text {
+  font: 12px sans-serif;
+  pointer-events: none;
+  fill: #2c3e50;
+  font-weight: 500;
+}
+
+/* --- Tooltip --- */
+.tooltip {
+  position: absolute;
+  padding: 6px 10px;
+  background: rgba(0,0,0,0.8);
+  color: #fff;
+  font-size: 12px;
+  border-radius: 4px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.1s;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+/* Optional: Smooth transition for hover effect on nodes */
+.node text {
+  transition: fill 0.2s;
+}
+
+
+  </style>
+</head>
+<body>
+  <h1>GEDCOM Knowledge Graph</h1>
+
+  <input type="file" id="gedcomFile">
+  <button onclick="uploadGedcom()">Upload GEDCOM</button>
+
+  <div id="count" style="margin-top:10px;"></div>
+  <a id="downloadLink" style="display:none;" download="output.ttl">Download TTL</a>
+  <svg id="graph" width="900" height="600"></svg>
+
+  <script>
+    async function uploadGedcom() {
+      const fileInput = document.getElementById("gedcomFile");
+      if (!fileInput.files.length) { alert("Select a GEDCOM file"); return; }
+      const file = fileInput.files[0];
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("http://localhost:8000/parse", {method: "POST", body: formData});
+      if (!response.ok) { alert("Upload failed"); return; }
+      const data = await response.json();
+
+      document.getElementById("count").innerText =
+        `Persons: ${data.count.persons}, Families: ${data.count.families}`;
+
+      const downloadLink = document.getElementById("downloadLink");
+      downloadLink.href = `http://localhost:8000/download?file_path=${encodeURIComponent(data.ttl_file)}`;
+      downloadLink.style.display = "inline";
+      downloadLink.innerText = "Download TTL";
+
+      renderGraph(data.graph.nodes, data.graph.links);
+    }
+function renderGraph(nodes, links) {
+  const svg = d3.select("#graph");
+  svg.selectAll("*").remove();
+
+  const width = +svg.attr("width");
+  const height = +svg.attr("height");
+
+  // Container for all nodes and links
+  const container = svg.append("g");
+
+  // Tooltip div
+  const tooltip = d3.select("body").append("div")
+      .attr("class", "tooltip");
+
+  // Simulation
+  const simulation = d3.forceSimulation(nodes)
+      .force("link", d3.forceLink(links).id(d => d.id).distance(80))
+      .force("charge", d3.forceManyBody().strength(-300))
+      .force("center", d3.forceCenter(width / 2, height / 2));
+
+  // Links
+  const link = container.append("g").attr("class", "links").selectAll("line")
+      .data(links)
+      .enter().append("line")
+      .attr("class", "link")
+      .attr("stroke-width", 1.5);
+
+  // Nodes
+  const node = container.append("g").attr("class", "nodes").selectAll("g")
+      .data(nodes)
+      .enter().append("g")
+      .attr("class", d => `node ${d.type}`);
+
+  // Circles
+  node.append("circle").attr("r", 10);
+
+  // Labels
+  node.append("text")
+      .text(d => d.label.split("/").pop())
+      .attr("x", 12)
+      .attr("y", 3)
+      .attr("font-size", "12px")
+      .attr("pointer-events", "none");
+
+  // Hover tooltip
+  node.on("mouseover", (event, d) => {
+        tooltip.style("opacity", 1)
+               .html(d.label);
+      })
+      .on("mousemove", (event) => {
+        tooltip.style("left", (event.pageX + 10) + "px")
+               .style("top", (event.pageY + 10) + "px");
+      })
+      .on("mouseout", () => {
+        tooltip.style("opacity", 0);
+      });
+
+  // Simulation tick
+  simulation.on("tick", () => {
+    link
+        .attr("x1", d => d.source.x)
+        .attr("y1", d => d.source.y)
+        .attr("x2", d => d.target.x)
+        .attr("y2", d => d.target.y);
+
+    node.attr("transform", d => `translate(${d.x},${d.y})`);
+  });
+
+  // Zoom behavior
+  const zoom = d3.zoom()
+      .scaleExtent([0.1, 4])
+      .on("zoom", (event) => {
+        container.attr("transform", event.transform);
+      });
+  svg.call(zoom);
+
+  // Drag behavior (safe with zoom)
+  const drag = d3.drag()
+      .on("start", (event, d) => {
+        if (!event.active) simulation.alphaTarget(0.3).restart();
+        d.fx = d.x;
+        d.fy = d.y;
+      })
+      .on("drag", (event, d) => {
+        d.fx = event.x;
+        d.fy = event.y;
+      })
+      .on("end", (event, d) => {
+        if (!event.active) simulation.alphaTarget(0);
+        d.fx = null;
+        d.fy = null;
+      });
+
+  node.call(drag);
+}
+
+
+  </script>
+</body>
+</html>
