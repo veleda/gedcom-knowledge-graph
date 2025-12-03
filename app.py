@@ -14,7 +14,7 @@ app = FastAPI(title="GEDCOM to TTL + Graph API")
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # allow all origins for simplicity
+    allow_origins=["https://veleda.github.io"],  # allow all origins for simplicity
     allow_methods=["*"],
     allow_headers=["*"]
 )
