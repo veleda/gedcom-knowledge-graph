@@ -149,24 +149,28 @@ text {
   <script>
     async function uploadGedcom() {
       const fileInput = document.getElementById("gedcomFile");
-      if (!fileInput.files.length) { alert("Select a GEDCOM file"); return; }
+      if (!fileInput.files.length) return alert("Select a GEDCOM file");
+
       const file = fileInput.files[0];
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", file); // must match `file=UploadFile` in backend
 
-      const response = await fetch("https://gedcom-knowledge-graph-backend.onrender.com", {method: "POST", body: formData});
-      if (!response.ok) { alert("Upload failed"); return; }
-      const data = await response.json();
+      try {
+        const response = await fetch("https://gedcom-knowledge-graph-backend.onrender.com/parse", {
+          method: "POST",
+          body: formData
+        });
 
-      document.getElementById("count").innerText =
-        `Persons: ${data.count.persons}, Families: ${data.count.families}`;
+        if (!response.ok) {
+          const text = await response.text();
+          return alert("Upload failed: " + text);
+        }
 
-      const downloadLink = document.getElementById("downloadLink");
-      downloadLink.href = `https://gedcom-knowledge-graph-backend.onrender.com/download?file_path=${encodeURIComponent(data.ttl_file)}`;
-      downloadLink.style.display = "inline";
-      downloadLink.innerText = "Download TTL";
-
-      renderGraph(data.graph.nodes, data.graph.links);
+        const data = await response.json();
+        console.log("Response:", data);
+      } catch (err) {
+        alert("Upload failed: " + err);
+      }
     }
 function renderGraph(nodes, links) {
   const svg = d3.select("#graph");
