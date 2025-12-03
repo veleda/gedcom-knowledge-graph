@@ -212,140 +212,142 @@ text {
     }
 
     function renderGraph(nodes, links) {
-  // clear previous
-  svg.selectAll("*").remove();
+      // clear previous
+      svg.selectAll("*").remove();
 
-  const width = +svg.attr("width");
-  const height = +svg.attr("height");
+      const width = +svg.attr("width");
+      const height = +svg.attr("height");
 
-  // tooltip DOM element
-  const tooltip = document.getElementById("tooltip");
+      // tooltip DOM element
+      const tooltip = document.getElementById("tooltip");
 
-  // ---- Zoom rect first (so it is below the node layer) ----
-  // invisible rect captures zoom/pan gestures but lives under the container
-  svg.append("rect")
-    .attr("class", "zoom-rect")
-    .attr("width", width)
-    .attr("height", height)
-    .style("fill", "transparent")
-    .style("cursor", "move"); // shows move cursor on background
+      // ---- Zoom rect first (so it is below the node layer) ----
+      // invisible rect captures zoom/pan gestures but lives under the container
+      svg.append("rect")
+        .attr("class", "zoom-rect")
+        .attr("width", width)
+        .attr("height", height)
+        .style("fill", "transparent")
+        .style("cursor", "move"); // shows move cursor on background
 
-  // group that will be zoomed and must sit above the rect
-  const container = svg.append("g").attr("class", "container");
+      // group that will be zoomed and must sit above the rect
+      const container = svg.append("g").attr("class", "container");
 
-  // convert link endpoints from ids to object refs
-  const nodeById = new Map(nodes.map(d => [d.id, d]));
-  links.forEach(l => {
-    l.source = nodeById.get(l.source);
-    l.target = nodeById.get(l.target);
-  });
+      // convert link endpoints from ids to object refs
+      const nodeById = new Map(nodes.map(d => [d.id, d]));
+      links.forEach(l => {
+        l.source = nodeById.get(l.source);
+        l.target = nodeById.get(l.target);
+      });
 
-  const simulation = d3.forceSimulation(nodes)
-    .force("link", d3.forceLink(links).id(d => d.id).distance(90).strength(1))
-    .force("charge", d3.forceManyBody().strength(-300))
-    .force("center", d3.forceCenter(width / 2, height / 2))
-    .on("tick", ticked);
+      const simulation = d3.forceSimulation(nodes)
+        .force("link", d3.forceLink(links).id(d => d.id).distance(90).strength(1))
+        .force("charge", d3.forceManyBody().strength(-300))
+        .force("center", d3.forceCenter(width / 2, height / 2))
+        .on("tick", ticked);
 
-  // draw links
-  const link = container.append("g").attr("class", "links")
-    .selectAll("line")
-    .data(links)
-    .enter().append("line")
-    .attr("class", "link")
-    .attr("stroke-width", 1.5)
-    .attr("stroke", "#999")
-    .attr("stroke-opacity", 0.6);
+      // draw links
+      const link = container.append("g").attr("class", "links")
+        .selectAll("line")
+        .data(links)
+        .enter().append("line")
+        .attr("class", "link")
+        .attr("stroke-width", 1.5)
+        .attr("stroke", "#999")
+        .attr("stroke-opacity", 0.6);
 
-  // draw nodes
-  const node = container.append("g").attr("class", "nodes")
-    .selectAll("g")
-    .data(nodes)
-    .enter().append("g")
-    .attr("class", d => `node ${d.type}`)
-    .style("cursor", "pointer"); // show pointer on node hover
+      // draw nodes
+      const node = container.append("g").attr("class", "nodes")
+        .selectAll("g")
+        .data(nodes)
+        .enter().append("g")
+        .attr("class", d => `node ${d.type}`)
+        .style("cursor", "pointer"); // show pointer on node hover
 
-  node.append("circle")
-    .attr("r", 8)
-    .attr("stroke", "#333")
-    .attr("stroke-width", 1.2);
+      node.append("circle")
+        .attr("r", 8)
+        .attr("stroke", "#333")
+        .attr("stroke-width", 1.2);
 
-  // Add an SVG <title> as a fallback (browser tooltip on hover)
-  node.append("title").text(d => (d.label || d.id));
+      // Add an SVG <title> as a fallback (browser tooltip on hover)
+      node.append("title").text(d => (d.label || d.id));
 
-  // OPTIONAL: persistent labels (comment out if you want hover-only)
-  // node.append("text")
-  //   .attr("x", 12)
-  //   .attr("y", 3)
-  //   .attr("font-size", 11)
-  //   .attr("fill", "#222")
-  //   .text(d => (d.label || d.id).toString().split("/").pop())
-  //   .style("pointer-events", "none");
+      node.append("text")
+        .attr("text-anchor", "middle")
+        .attr("dominant-baseline", "middle")
+        .attr("font-size", 9)
+        .attr("fill", "white")
+        .text(d => {
+            const label = (d.label || d.id).toString().split("/").pop();
+            return label.length > 4 ? label.slice(0,4) : label;
+      })
+    .style("pointer-events", "none");   // important: don't block dragging!
 
-  // Drag behavior (works with zoom)
-  const drag = d3.drag()
-    .on("start", (event, d) => {
-      if (!event.active) simulation.alphaTarget(0.3).restart();
-      // freeze position
-      d.fx = d.x;
-      d.fy = d.y;
-    })
-    .on("drag", (event, d) => {
-      // update fixed position (these are simulation coordinates)
-      d.fx = event.x;
-      d.fy = event.y;
-    })
-    .on("end", (event, d) => {
-      if (!event.active) simulation.alphaTarget(0);
-      d.fx = null;
-      d.fy = null;
-    });
+      // Drag behavior (works with zoom)
+      const drag = d3.drag()
+        .on("start", (event, d) => {
+          if (!event.active) simulation.alphaTarget(0.3).restart();
+          // freeze position
+          d.fx = d.x;
+          d.fy = d.y;
+        })
+        .on("drag", (event, d) => {
+          // update fixed position (these are simulation coordinates)
+          d.fx = event.x;
+          d.fy = event.y;
+        })
+        .on("end", (event, d) => {
+          if (!event.active) simulation.alphaTarget(0);
+          d.fx = null;
+          d.fy = null;
+        });
 
-  node.call(drag);
+      node.call(drag);
 
-  // Hover interactions for HTML tooltip
-  node.on("mouseover", (event, d) => {
-    const text = (d.label || d.id).toString();
-    tooltip.style.display = "block";
-    tooltip.textContent = text;
-    positionTooltip(event);
-  }).on("mousemove", (event) => {
-    positionTooltip(event);
-  }).on("mouseout", () => {
-    tooltip.style.display = "none";
-  });
+      // Hover interactions for HTML tooltip
+      node.on("mouseover", (event, d) => {
+        const text = (d.label || d.id).toString();
+        tooltip.style.display = "block";
+        tooltip.textContent = text;
+        positionTooltip(event);
+      }).on("mousemove", (event) => {
+        positionTooltip(event);
+      }).on("mouseout", () => {
+        tooltip.style.display = "none";
+      });
 
-  function positionTooltip(event) {
-    // keep tooltip near mouse; adjust offset so it doesn't overlap cursor
-    const offsetX = 12;
-    const offsetY = -12;
-    tooltip.style.left = (event.pageX + offsetX) + "px";
-    tooltip.style.top = (event.pageY + offsetY) + "px";
-  }
+      function positionTooltip(event) {
+        // keep tooltip near mouse; adjust offset so it doesn't overlap cursor
+        const offsetX = 12;
+        const offsetY = -12;
+        tooltip.style.left = (event.pageX + offsetX) + "px";
+        tooltip.style.top = (event.pageY + offsetY) + "px";
+      }
 
-  // zoom behavior: apply transforms to container (which is above the rect)
-  const zoom = d3.zoom()
-    .scaleExtent([0.1, 4])
-    .on("zoom", (event) => {
-      container.attr("transform", event.transform);
-    });
+      // zoom behavior: apply transforms to container (which is above the rect)
+      const zoom = d3.zoom()
+        .scaleExtent([0.1, 4])
+        .on("zoom", (event) => {
+          container.attr("transform", event.transform);
+        });
 
-  // attach zoom to svg (rect will still capture gestures but nodes receive mouse)
-  svg.call(zoom);
+      // attach zoom to svg (rect will still capture gestures but nodes receive mouse)
+      svg.call(zoom);
 
-  // tick update
-  function ticked() {
-    link
-      .attr("x1", d => d.source.x)
-      .attr("y1", d => d.source.y)
-      .attr("x2", d => d.target.x)
-      .attr("y2", d => d.target.y);
+      // tick update
+      function ticked() {
+        link
+          .attr("x1", d => d.source.x)
+          .attr("y1", d => d.source.y)
+          .attr("x2", d => d.target.x)
+          .attr("y2", d => d.target.y);
 
-    node.attr("transform", d => `translate(${d.x},${d.y})`);
-  }
+        node.attr("transform", d => `translate(${d.x},${d.y})`);
+      }
 
-  // kick simulation
-  simulation.alpha(1).restart();
-}
+      // kick simulation
+      simulation.alpha(1).restart();
+    }
 
   </script>
 </body>
