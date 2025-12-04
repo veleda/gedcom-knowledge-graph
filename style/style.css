@@ -72,40 +72,31 @@ svg {
 }
 
 /* Node Styles */
-.node circle {
+/* default rect styling */
+.node-rect {
   stroke: #333;
-  stroke-width: 1.5px;
-  cursor: pointer;
-  transition: fill 0.2s, r 0.2s;
+  stroke-width: 1.2px;
 }
 
-.node.person circle {
+/* person nodes */
+.node.person circle,
+.node.person .node-rect {
   fill: #3498db;
+  stroke: #2c3e50;
 }
 
-.node.family circle {
+/* family nodes */
+.node.family circle,
+.node.family .node-rect {
   fill: #e67e22;
+  stroke: #922b21;
 }
 
-.node:hover circle {
+/* hover */
+.node:hover circle,
+.node:hover .node-rect {
   stroke-width: 2.5px;
-  r: 12px;
 }
-
-  /* rectangle node */
-  .node-rect {
-    fill: #69b3a2;         /* default node color (persons) */
-    stroke: #333;
-    stroke-width: 1.2px;
-  }
-  .node-family .node-rect { fill: #f39c12; } /* family color override */
-
-  .node-initial {
-    fill: white;
-    font-weight: 700;
-    font-family: sans-serif;
-    pointer-events: none; /* let the group handle pointer events */
-  }
 
 /* Links */
 .link {
@@ -140,7 +131,3 @@ text {
     fill: none;
     pointer-events: all;
   }
-
-  .node text {
-  transition: fill 0.2s;
-}
