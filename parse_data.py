@@ -109,7 +109,7 @@ def build_persons_table(df: pl.DataFrame, base_uri: str) -> pl.DataFrame:
     ### Clean name
     if "NAME" in persons.columns:
         persons = persons.with_columns([
-            pl.col("NAME").str.replace_all(r"/([^/]+)/", r" \1").alias("NAME")
+            pl.col("NAME").str.replace_all("/", "").alias("NAME")
         ])
 
     return persons
