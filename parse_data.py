@@ -109,22 +109,7 @@ def build_persons_table(df: pl.DataFrame, base_uri: str) -> pl.DataFrame:
     ### Clean name
     if "NAME" in persons.columns:
         persons = persons.with_columns([
-            # SURN: first capture between slashes, null if none
-            pl.col("NAME").str.extract(r"/([^/]+)/", 1).alias("SURN"),
-
-            # GIVN: remove the /surname/ token entirely, collapse spaces, trim edges
-            pl.col("NAME")
-              .str.replace_all(r"/[^/]+/", "")      # remove the /Surname/ token
-              .str.replace_all(r"\s+", " ")         # collapse multiple spaces to one
-              .str.replace_all(r"^\s+|\s+$", "")    # trim leading/trailing spaces via regex
-              .alias("GIVN"),
-
-            # NAME cleaned: replace /Surname/ with ' Surname', collapse spaces, trim edges
-            pl.col("NAME")
-              .str.replace_all(r"/([^/]+)/", r" \1") # turn /Surname/ ->  Surname
-              .str.replace_all(r"\s+", " ")
-              .str.replace_all(r"^\s+|\s+$", "")
-              .alias("NAME"),
+            pl.col("NAME").str.replace_all(r"/([^/]+)/", r" \1").alias("NAME")
         ])
 
     return persons
