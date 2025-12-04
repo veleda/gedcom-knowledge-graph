@@ -83,6 +83,7 @@ svg {
 .node.person .node-rect {
   fill: #3498db;
   stroke: #2c3e50;
+  color:#f7f9fc;
 }
 
 /* family nodes */
