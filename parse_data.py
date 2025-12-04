@@ -109,24 +109,26 @@ def build_persons_table(df: pl.DataFrame, base_uri: str) -> pl.DataFrame:
     ### Clean name
     if "NAME" in persons.columns:
         persons = persons.with_columns([
-            # Extract surname between slashes, if present
+            # SURN: first capture between slashes, null if none
             pl.col("NAME").str.extract(r"/([^/]+)/", 1).alias("SURN"),
-            # Given name(s) = NAME with the /Surname/ token removed and trimmed
+
+            # GIVN: remove the /surname/ token entirely, collapse spaces, trim edges
             pl.col("NAME")
-              .str.replace_all(r"/[^/]+/", "")   # remove /..../
-              .str.replace_all(r"\s+", " ")      # collapse multiple spaces
-              .str.strip()
+              .str.replace_all(r"/[^/]+/", "")      # remove the /Surname/ token
+              .str.replace_all(r"\s+", " ")         # collapse multiple spaces to one
+              .str.replace_all(r"^\s+|\s+$", "")    # trim leading/trailing spaces via regex
               .alias("GIVN"),
-            # Also replace the NAME column itself: remove slashes and trim
+
+            # NAME cleaned: replace /Surname/ with ' Surname', collapse spaces, trim edges
             pl.col("NAME")
-              .str.replace_all(r"/([^/]+)/", r" \1")   # turn /Surname/ ->  Surname
+              .str.replace_all(r"/([^/]+)/", r" \1") # turn /Surname/ ->  Surname
               .str.replace_all(r"\s+", " ")
-              .str.strip()
-              .alias("NAME")
+              .str.replace_all(r"^\s+|\s+$", "")
+              .alias("NAME"),
         ])
-    # else: if NAME not present, nothing to do
 
     return persons
+
 
 
 # ----------------------------
