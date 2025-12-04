@@ -106,7 +106,28 @@ def build_persons_table(df: pl.DataFrame, base_uri: str) -> pl.DataFrame:
 
     persons = pointers.join(persons_wide, on="person_id", how="left")
 
+    ### Clean name
+    if "NAME" in persons.columns:
+        persons = persons.with_columns([
+            # Extract surname between slashes, if present
+            pl.col("NAME").str.extract(r"/([^/]+)/", 1).alias("SURN"),
+            # Given name(s) = NAME with the /Surname/ token removed and trimmed
+            pl.col("NAME")
+              .str.replace_all(r"/[^/]+/", "")   # remove /..../
+              .str.replace_all(r"\s+", " ")      # collapse multiple spaces
+              .str.strip()
+              .alias("GIVN"),
+            # Also replace the NAME column itself: remove slashes and trim
+            pl.col("NAME")
+              .str.replace_all(r"/([^/]+)/", r" \1")   # turn /Surname/ ->  Surname
+              .str.replace_all(r"\s+", " ")
+              .str.strip()
+              .alias("NAME")
+        ])
+    # else: if NAME not present, nothing to do
+
     return persons
+
 
 # ----------------------------
 # BUILD FAMILIES TABLE
